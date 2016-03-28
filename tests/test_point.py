@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of controller-example nor the names of its
+# * Neither the name of ecpy nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -29,9 +29,10 @@
 from ecpy import Point, Generator
 from ecpy import curves
 import time
-import random
+from Crypto.Random import random
 
-_curve = curves.curve_secp256k1
+_curve = curves.curve_secp112r1
+#_curve = curves.curve_secp256k1
 #_curve = curves.curve_secp384r1
 #_curve = curves.curve_bauer9
 P = _curve['p']
@@ -189,13 +190,25 @@ if __name__ == '__main__':
                 Fxy = fast_multiply(G,xy)
                 Pxy = Gpt * xy
                 Pxya = Pxy.affine()
-                #print str(xy) + ':', _curve['n'], Fxy, Pxya, GPxya
+                if not Pxy.is_infinite:
+                    Pxyc = Pxy.compress()
+                    Pxycd = Point.decompress(Pxyc)
                 if Pxy.is_infinite:
                     assert Fxy[0] == 0 and Fxy[1] == 0
                     assert XYpt.is_infinite
                 else:
                     assert Pxya[0] == Fxy[0] and Pxya[1] == Fxy[1]
                     assert Pxya[0] == XYa[0] and Pxya[1] == XYa[1]
+                    assert Pxy == Pxycd
+                #print str(xy) + ':', _curve['n'], Fxy, Pxya, Pxyc
+                #print Fxy, '%x' % Fxy[0], '%x' % Fxy[1], Pxya, Pxyc
+                #print Pxyc
+                #print
+                if not Xpt.is_infinite and not Ypt.is_infinite:
+                    Pecxy = Xpt * y
+                    Pecyx = Ypt * x
+                    assert Pecxy == Pecyx
+                
     
     
     testset = []

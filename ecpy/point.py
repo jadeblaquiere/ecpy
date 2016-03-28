@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of controller-example nor the names of its
+# * Neither the name of ecpy nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -47,6 +47,7 @@ class Point (object):
     p = _curve['p']
     n = _curve['n']
     a = _curve['a']
+    b = _curve['b']
     bits = _curve['bits']
 
     def __init__(self, x=None, y=None, z=None, infinity=False):
@@ -61,14 +62,31 @@ class Point (object):
         cls.p = c['p']
         cls.n = c['n']
         cls.a = c['a']
+        cls.b = c['b']
         cls.bits = c['bits']
 
     def _from_jacobian(self):
         if not self.is_infinite:
-            zinv = _modinv(self.z, Point.p)
-            self.x = (self.x * zinv ** 2) % Point.p
-            self.y = (self.y * zinv ** 3) % Point.p
-            self.z = 1
+            if self.z != 1:
+                zinv = _modinv(self.z, Point.p)
+                self.x = (self.x * zinv ** 2) % Point.p
+                self.y = (self.y * zinv ** 3) % Point.p
+                self.z = 1
+
+    def compress(self):
+        P = self.affine()
+        pfmt = '%%0%dx' % (int((Point.bits + 7) / 8) * 2)
+        return ('03' if (P[1] % 2) else '02') + (pfmt % P[0])
+
+    @staticmethod
+    def decompress(textrep):
+        P = [0, 0]
+        P[0] = x = int(textrep[2:], 16)
+        sign = int(textrep[:2], 16) & 1
+        beta = pow(int(x * x * x + Point.a * x + Point.b),
+                   int((Point.p + 1) // 4), Point.p)
+        P[1] = (Point.p - beta) if ((beta + sign) & 1) else beta
+        return Point(P[0], P[1])
 
     def _copy(self):
         return Point(self.x, self.y, self.z, self.is_infinite)
@@ -168,13 +186,20 @@ class Point (object):
                 idx += 1
 
     def __rmul__(self, n):
-        return __mul__(self, n)
+        return self.__mul__(n)
 
     def affine(self):
         self._from_jacobian()
         if self.is_infinite:
             return 'infinity'
         return (self.x, self.y)
+
+    def __str__(self):
+        return self.compress()
+
+    def __repr__(self):
+        self._from_jacobian()
+        return "Point(" + str(self.x) + ", " + str(self.y) + ")"
 
 
 class Generator (Point):
@@ -217,4 +242,4 @@ class Generator (Point):
         return accum
 
     def __rmul__(self, n):
-        return __mul__(self, n)
+        return self.__mul__(n)
