@@ -26,7 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import curves
+import ecpy.curves as curves
 
 _curve = curves.curve_secp256k1
 # _curve = curves.curve_secp384r1
