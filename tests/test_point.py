@@ -148,18 +148,18 @@ if __name__ == '__main__':
             if x != 0:
                 assert test == 1
     
-    print 'Setting up Generators'
+    print('Setting up Generators')
     G = _curve['G']
-    print 'ref Gen'
+    print('ref Gen')
     Gpt = Point(G[0],G[1])
-    print 'Point Gen'
+    print('Point Gen')
     GenG = Generator(G[0],G[1])
-    print 'Generator Gen'
+    print('Generator Gen')
         
     if True:
-        limit = min(512, _curve['n']) / 2 
+        limit = min(512, _curve['n']) // 2 
         for ax in range(1-limit,limit+1):
-            print 'ax=', ax
+            print('ax=', ax)
             x = ax % _curve['n']
             for ay in range(1-limit,limit+1):
                 y = ay % _curve['n']
@@ -241,9 +241,9 @@ if __name__ == '__main__':
     ref_time = arpd_time - brpd_time
     orig_time = apd_time - bpd_time
     
-    print 'doubling:'
-    print 'ref =', ref_time
-    print 'ecp =', orig_time
+    print('doubling:')
+    print('ref =', ref_time)
+    print('ecp =', orig_time)
     
     testset = []
     mpztestset = []
@@ -278,9 +278,9 @@ if __name__ == '__main__':
     ref_time = arpd_time - brpd_time
     orig_time = apd_time - bpd_time
     
-    print 'addition'
-    print 'ref =', ref_time
-    print 'ecp =', orig_time
+    print('addition')
+    print('ref =', ref_time)
+    print('ecp =', orig_time)
 
     testset = []
     mpztestset = []
@@ -310,9 +310,9 @@ if __name__ == '__main__':
     ref_time = arpd_time - brpd_time
     orig_time = apd_time - bpd_time
     
-    print 'scalar mulitplication:'
-    print 'ref =', ref_time
-    print 'ecp =', orig_time
+    print('scalar mulitplication:')
+    print('ref =', ref_time)
+    print('ecp =', orig_time)
 
     testset = []
     mpztestset = []
@@ -345,8 +345,8 @@ if __name__ == '__main__':
     orig_time = apd_time - bpd_time
     gnew_time = agpdb_time - bgpdb_time
 
-    print 'generation:'
-    print 'ref =', ref_time
-    print 'ecp =', orig_time
-    print 'gen =', gnew_time
+    print('generation:')
+    print('ref =', ref_time)
+    print('ecp =', orig_time)
+    print('gen =', gnew_time)
     
