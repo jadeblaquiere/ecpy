@@ -26,9 +26,9 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from ecpy import Point, Generator
-from ecpy import curves
-from ecpy import ECDSA
+from ecpy.point import Point, Generator
+import ecpy.curves as curves
+from ecpy.ecdsa import ECDSA
 from Crypto.Random import random
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
@@ -36,8 +36,8 @@ import hashlib
 import binascii
 import base64
 
-_curve = curves.curve_secp112r1
-#_curve = curves.curve_secp256k1
+#_curve = curves.curve_secp112r1
+_curve = curves.curve_secp256k1
 #_curve = curves.curve_secp384r1
 
 Point.set_curve(_curve)
