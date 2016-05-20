@@ -26,20 +26,24 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from ecpy import Point, Generator
+from ecpy import Point, Generator, EdPoint
 from ecpy import curves
 import time
 from Crypto.Random import random
 
-_curve = curves.curve_secp112r1
+
+#_curve = curves.curve_secp112r1
 #_curve = curves.curve_secp256k1
-#_curve = curves.curve_secp384r1
+_curve = curves.curve_secp384r1
 #_curve = curves.curve_bauer9
 P = _curve['p']
 N = _curve['n']
 A = _curve['a']
 
+_ed_curve = curves.ed_curve_curve41417
+
 Point.set_curve(_curve)
+EdPoint.set_curve(_ed_curve)
 
 def modinv(a, m): 
     lastremainder, remainder, x, lastx = a, m, 0, 1
@@ -150,9 +154,12 @@ if __name__ == '__main__':
     
     print 'Setting up Generators'
     G = _curve['G']
+    EdG = _ed_curve['G']
     print 'ref Gen'
     Gpt = Point(G[0],G[1])
     print 'Point Gen'
+    EdGpt = EdPoint(EdG[0],EdG[1])
+    print 'EdPoint Gen'
     GenG = Generator(G[0],G[1])
     print 'Generator Gen'
         
