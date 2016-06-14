@@ -28,6 +28,12 @@
 
 import ecpy.curves as curves
 import abc
+import sys
+
+if sys.version_info < (3,):
+    integer_types = (int, long,)
+else:
+    integer_types = (int,)
 
 
 class _abstractstaticmethod(staticmethod):
@@ -229,7 +235,7 @@ class Point (PointBase):
 
     def __mul__(self, n):
         """Operator for multiplication of Point by scalar value n"""
-        assert isinstance(n, (int, long))
+        assert isinstance(n, integer_types)
         if self.is_infinite or n == 0:
             return Point(infinity=True)
         nmod = n % Point.n
