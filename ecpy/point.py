@@ -27,12 +27,24 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import ecpy.curves as curves
+import abc
+
+
+class _abstractstaticmethod(staticmethod):
+    __slots__ = ()
+
+    def __init__(self, function):
+        super(_abstractstaticmethod, self).__init__(function)
+        function.__isabstractmethod__ = True
+    __isabstractmethod__ = True
+
 
 _curve = curves.curve_secp256k1
 # _curve = curves.curve_secp384r1
 # _curve = curves.curve_bauer9
 
 _generator_LUT_bits = 8
+_generator_list = []
 
 
 def _modinv(a, m):
@@ -43,7 +55,66 @@ def _modinv(a, m):
     return lastx % m
 
 
-class Point (object):
+"""ecpy.point: Native python implementation of elliptic curve point math"""
+
+
+class PointBase (object):
+    """Abstract base clase for elliptic curve points in finite fields"""
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def compress(self):
+        """Return a string representing the compressed form of the point"""
+        pass
+
+    @_abstractstaticmethod
+    def decompress(textrep):
+        """Construct a point from a string representing the compressed form"""
+        pass
+
+    @abc.abstractmethod
+    def __eq__(self, q):
+        pass
+
+    @abc.abstractmethod
+    def __ne__(self, q):
+        pass
+
+    @abc.abstractmethod
+    def __add__(self, q):
+        """Operator for adding one point to another or itself (doubling). """
+        """Points must be from the same curve"""
+        pass
+
+    @abc.abstractmethod
+    def __mul__(self, n):
+        """Operator for multiplication of Point by scalar value n"""
+        pass
+
+    @abc.abstractmethod
+    def __rmul__(self, n):
+        pass
+
+    @abc.abstractmethod
+    def affine(self):
+        """Return a tuple (x,y) of the the affine coordinates of the point"""
+        pass
+
+    @abc.abstractmethod
+    def __str__(self):
+        pass
+
+    @abc.abstractmethod
+    def __repr__(self):
+        pass
+
+
+class Point (PointBase):
+    """Point class for short Weierstrass curve algebra. Short Weierstrass
+    format curves are defined by the equation y**2 = x**3 + a*x + b.
+
+    Point is derived from abstract base class PointBase.
+    """
     p = _curve['p']
     n = _curve['n']
     a = _curve['a']
@@ -59,6 +130,13 @@ class Point (object):
 
     @classmethod
     def set_curve(cls, c):
+        """Sets curve parameters. Takes a dictionary as input with keys:
+            p - defines prime field Fp. Coordinate values are modulo p
+            G - generator point for cyclic subgroup of points on cruve
+            n - order of G, also size of the subgroup
+            a, b - curve equation coefficients
+            bits - bitsize of prime field, i.e. log2(p)
+        """
         cls.p = c['p']
         cls.n = c['n']
         cls.a = c['a']
@@ -74,12 +152,14 @@ class Point (object):
                 self.z = 1
 
     def compress(self):
+        """Return a string representing the compressed form of the point"""
         P = self.affine()
         pfmt = '%%0%dx' % (int((Point.bits + 7) / 8) * 2)
         return ('03' if (P[1] % 2) else '02') + (pfmt % P[0])
 
     @staticmethod
     def decompress(textrep):
+        """Construct a point from a string representing the compressed form"""
         P = [0, 0]
         P[0] = x = int(textrep[2:], 16)
         sign = int(textrep[:2], 16) & 1
@@ -103,6 +183,7 @@ class Point (object):
         return Point(nx, ny, nz)
 
     def __eq__(self, q):
+        assert isinstance(q, Point)
         if self.is_infinite:
             if q.is_infinite:
                 return True
@@ -121,6 +202,9 @@ class Point (object):
         return not (self == q)
 
     def __add__(self, q):
+        """Operator for adding one point to another or itself (doubling).
+        Points must be from the same curve"""
+        assert isinstance(q, Point)
         if self.is_infinite:
             return q._copy()
         if q.is_infinite:
@@ -143,18 +227,9 @@ class Point (object):
         nz = (H * self.z * q.z) % Point.p
         return Point(nx, ny, nz)
 
-    def _base_multiply(self, n):
-        if self.is_infinite or n == 0:
-            return Point(infinity=True)
-        if n == 1:
-            return self._copy()
-        nmod = n % Point.n
-        b = self.multiply(nmod//2)
-        if (nmod % 2) == 0:
-            return b.double()
-        return self.add(b.double())
-
     def __mul__(self, n):
+        """Operator for multiplication of Point by scalar value n"""
+        assert isinstance(n, (int, long))
         if self.is_infinite or n == 0:
             return Point(infinity=True)
         nmod = n % Point.n
@@ -189,6 +264,7 @@ class Point (object):
         return self.__mul__(n)
 
     def affine(self):
+        """Return a tuple (x,y) of the the affine coordinates of the point"""
         self._from_jacobian()
         if self.is_infinite:
             return 'infinity'
@@ -203,10 +279,30 @@ class Point (object):
 
 
 class Generator (Point):
+    """Optimized subclass for elliptic curve generator points. Look up tables
+    are generated in constructor which accererate scalar multiplication.
+    """
 
-    def __init__(self, x, y, z=None, infinity=False):
-        super(self.__class__, self).__init__(x, y)
+    def __init__(self, x, y, z=None):
+        super(self.__class__, self).__init__(x, y, z)
         self._recalculate_tables()
+
+    @classmethod
+    def set_curve(cls, c):
+        Point.set_curve(c)
+
+    @staticmethod
+    def init(x, y, z=None):
+        """Will find a matching generator or construct one if required.
+        Creating generators is computationally expensive so this method is
+        preferred to calling normal constructor."""
+        P = Point(x, y, z)
+        for gen in _generator_list:
+            if P == gen:
+                return gen
+        gen = Generator(x, y, z)
+        _generator_list.append(gen)
+        return gen
 
     def _recalculate_tables(self):
         self.ntables = ((Generator.bits - 1) // _generator_LUT_bits) + 1

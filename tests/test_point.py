@@ -39,7 +39,7 @@ P = _curve['p']
 N = _curve['n']
 A = _curve['a']
 
-Point.set_curve(_curve)
+Generator.set_curve(_curve)
 
 def modinv(a, m): 
     lastremainder, remainder, x, lastx = a, m, 0, 1
@@ -153,11 +153,14 @@ if __name__ == '__main__':
     print('ref Gen')
     Gpt = Point(G[0],G[1])
     print('Point Gen')
-    GenG = Generator(G[0],G[1])
+    GenG = Generator.init(G[0],G[1])
     print('Generator Gen')
+    GenG2 = Generator.init(G[0],G[1])
+    print('Generator Gen')
+    assert GenG2 is GenG
         
     if True:
-        limit = min(512, _curve['n']) // 2 
+        limit = min(32, _curve['n']) // 2 
         for ax in range(1-limit,limit+1):
             print('ax=', ax)
             x = ax % _curve['n']
