@@ -159,13 +159,17 @@ class Point (PointBase):
 
     def compress(self):
         """Return a string representing the compressed form of the point"""
+        if self.is_infinite:
+            return b'infinity'
         P = self.affine()
-        pfmt = '%%0%dx' % (int((Point.bits + 7) / 8) * 2)
-        return ('03' if (P[1] % 2) else '02') + (pfmt % P[0])
+        pfmt = b'%%0%dx' % (int((Point.bits + 7) / 8) * 2)
+        return (b'03' if (P[1] % 2) else b'02') + (pfmt % P[0])
 
     @staticmethod
     def decompress(textrep):
         """Construct a point from a string representing the compressed form"""
+        if textrep == b'infinity':
+            return Point(infinity=True)
         P = [0, 0]
         P[0] = x = int(textrep[2:], 16)
         sign = int(textrep[:2], 16) & 1
@@ -273,7 +277,7 @@ class Point (PointBase):
         """Return a tuple (x,y) of the the affine coordinates of the point"""
         self._from_jacobian()
         if self.is_infinite:
-            return 'infinity'
+            return b'infinity'
         return (self.x, self.y)
 
     def __str__(self):

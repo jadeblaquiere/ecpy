@@ -41,7 +41,7 @@ _curve = curves.curve_secp256k1
 #_curve = curves.curve_secp384r1
 
 Point.set_curve(_curve)
-_G = Generator(_curve['G'][0], _curve['G'][1])
+_G = Generator.init(_curve['G'][0], _curve['G'][1])
 ECDSA.set_curve(_curve)
 ECDSA.set_generator(_G)
 

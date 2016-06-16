@@ -158,7 +158,12 @@ if __name__ == '__main__':
     GenG2 = Generator.init(G[0],G[1])
     print('Generator Gen')
     assert GenG2 is GenG
-        
+    InfP = Point()
+    ex = InfP.compress()
+    InfP2 = Point.decompress(ex)
+    assert InfP == InfP2
+    print('Point @ Infinity')
+
     if True:
         limit = min(32, _curve['n']) // 2 
         for ax in range(1-limit,limit+1):
