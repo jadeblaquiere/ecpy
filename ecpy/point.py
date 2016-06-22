@@ -162,8 +162,8 @@ class Point (PointBase):
         if self.is_infinite:
             return b'infinity'
         P = self.affine()
-        pfmt = b'%%0%dx' % (int((Point.bits + 7) / 8) * 2)
-        return (b'03' if (P[1] % 2) else b'02') + (pfmt % P[0])
+        pfmt = '%%0%dx' % (int((Point.bits + 7) / 8) * 2)
+        return (b'03' if (P[1] % 2) else b'02') + (pfmt % P[0]).encode()
 
     @staticmethod
     def decompress(textrep):
@@ -281,11 +281,11 @@ class Point (PointBase):
         return (self.x, self.y)
 
     def __str__(self):
-        return self.compress()
+        return self.compress().decode()
 
     def __repr__(self):
         self._from_jacobian()
-        return "Point(" + str(self.x) + ", " + str(self.y) + ")"
+        return "Point.decompress(" + str(self.x) + ", " + str(self.y) + ")"
 
 
 class Generator (Point):

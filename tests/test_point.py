@@ -150,13 +150,13 @@ if __name__ == '__main__':
     
     print('Setting up Generators')
     G = _curve['G']
-    print('ref Gen')
+    print('ref Gen ' + str(G))
     Gpt = Point(G[0],G[1])
-    print('Point Gen')
+    print('Point Gen ' + str(Gpt))
     GenG = Generator.init(G[0],G[1])
-    print('Generator Gen')
+    print('Generator Gen ' + str(GenG))
     GenG2 = Generator.init(G[0],G[1])
-    print('Generator Gen')
+    print('Generator Gen ' + str(GenG2))
     assert GenG2 is GenG
     InfP = Point()
     ex = InfP.compress()

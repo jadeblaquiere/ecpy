@@ -60,15 +60,15 @@ for f in friends:
     datum['pubkey'] = P
     data.append(datum)
 
-print data
+print(data)
 
 for i in range(100000):
     for d1 in data:
         for d2 in data:
             if d1 == d2:
-                print 'skipping %s to %s' % (d1['name'], d2['name'])
+                print('skipping %s to %s' % (d1['name'], d2['name']))
             else:
-                print 'sending %s to %s' % (d1['name'], d2['name'])
+                print('sending %s to %s' % (d1['name'], d2['name']))
                 msglen = random.randint(1,1023)
                 msg=''
                 for j in range(msglen):
@@ -77,12 +77,12 @@ for i in range(100000):
                     else:
                         msg += chr(ord('a') + random.randint(0,25))
                 adlen = random.randint(1,255)
-                ad=''
+                ad=b''
                 for j in range(adlen):
                     if random.randint(0,7) == 0:
-                        ad += ' '
+                        ad += b' '
                     else:
-                        ad += chr(ord('a') + random.randint(0,25))
+                        ad += chr(ord(b'a') + random.randint(0,25)).encode()
                 send = {}
                 send['ad'] = ad
                 ecdhkey = d2['pubkey'] * d1['privkey']
@@ -99,9 +99,9 @@ for i in range(100000):
                 send['b64cipher'] = b64cipher
                 sig = ecdsa.sign(d1['privkey'], ciphertext, ad)
                 send['sig'] = sig
-                print send
-                print
-                print
+                print(send)
+                print('')
+                print('')
                 recv = send
                 recdhkey = d1['pubkey'] * d2['privkey']
                 assert recdhkey == ecdhkey
@@ -119,6 +119,6 @@ for i in range(100000):
                 assert rkey == key
                 rcryptor = AES.new(rkey, AES.MODE_CTR, counter=rcounter)
                 plaintext = rcryptor.decrypt(rciphertext[rbs:])
-                assert plaintext == msg
+                assert plaintext == msg.encode()
             
             
