@@ -73,6 +73,7 @@ class ECDSA (object):
         s = 0
         while s == 0:
             r = 0
+            k = 0
             while r == 0:
                 k = random.randint(1, ECDSA.n - 1)
                 R = ECDSA.G * k
