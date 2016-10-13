@@ -31,10 +31,10 @@ import ecpy.curves as curves
 import time
 from Crypto.Random import random
 
-_curve = curves.curve_secp112r1
+#_curve = curves.curve_secp112r1
 #_curve = curves.curve_secp256k1
 #_curve = curves.curve_secp384r1
-#_curve = curves.curve_bauer9
+_curve = curves.curve_bauer9
 P = _curve['p']
 N = _curve['n']
 A = _curve['a']
@@ -158,10 +158,17 @@ if __name__ == '__main__':
     GenG2 = Generator.init(G[0],G[1])
     print('Generator Gen ' + str(GenG2))
     assert GenG2 is GenG
+    print('Generator uncompressed ' + str(GenG.uncompressed_format()))
     InfP = Point()
     ex = InfP.compress()
+    exraw = InfP.uncompressed_format()
     InfP2 = Point.decompress(ex)
+    InfP3 = Point.decompress(exraw)
+    InfP4 = Point.decompress(ex.decode())
+    assert ex == exraw
     assert InfP == InfP2
+    assert InfP == InfP3
+    assert InfP == InfP4
     print('Point @ Infinity')
 
     if True:
@@ -201,6 +208,9 @@ if __name__ == '__main__':
                 if not Pxy.is_infinite:
                     Pxyc = Pxy.compress()
                     Pxycd = Point.decompress(Pxyc)
+                    Pxycds = Point.decompress(Pxyc.decode())
+                    Pxyuc = Pxy.uncompressed_format()
+                    Pxyucd = Point.decompress(Pxyuc)
                 if Pxy.is_infinite:
                     assert Fxy[0] == 0 and Fxy[1] == 0
                     assert XYpt.is_infinite
@@ -208,6 +218,9 @@ if __name__ == '__main__':
                     assert Pxya[0] == Fxy[0] and Pxya[1] == Fxy[1]
                     assert Pxya[0] == XYa[0] and Pxya[1] == XYa[1]
                     assert Pxy == Pxycd
+                    assert Pxy == Pxycds
+                    assert Pxy == Pxyucd
+                    assert Pxyc != Pxyuc
                 #print str(xy) + ':', _curve['n'], Fxy, Pxya, Pxyc
                 #print Fxy, '%x' % Fxy[0], '%x' % Fxy[1], Pxya, Pxyc
                 #print Pxyc

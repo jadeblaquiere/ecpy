@@ -157,6 +157,14 @@ class Point (PointBase):
                 self.y = (self.y * zinv ** 3) % Point.p
                 self.z = 1
 
+    def uncompressed_format(self):
+        """Return a string representing the uncompressed form (x and y) of the point"""
+        if self.is_infinite:
+            return b'infinity'
+        P = self.affine()
+        pfmt = '%%0%dx' % (int((Point.bits + 7) / 8) * 2)
+        return (b'04') + (pfmt % P[0]).encode() + (pfmt % P[1]).encode()
+
     def compress(self):
         """Return a string representing the compressed form of the point"""
         if self.is_infinite:
@@ -168,14 +176,21 @@ class Point (PointBase):
     @staticmethod
     def decompress(textrep):
         """Construct a point from a string representing the compressed form"""
+        if isinstance(textrep, str):
+            textrep = textrep.encode()
         if textrep == b'infinity':
             return Point(infinity=True)
         P = [0, 0]
-        P[0] = x = int(textrep[2:], 16)
         sign = int(textrep[:2], 16) & 1
-        beta = pow(int(x * x * x + Point.a * x + Point.b),
-                   int((Point.p + 1) // 4), Point.p)
-        P[1] = (Point.p - beta) if ((beta + sign) & 1) else beta
+        if int(textrep[:2], 16) & 4 != 0:
+            bytelen = (len(textrep) - 2) // 2
+            P[0] = x = int(textrep[2:2+bytelen], 16)
+            P[1] = y = int(textrep[2+bytelen:], 16)
+        else:
+            P[0] = x = int(textrep[2:], 16)
+            beta = pow(int(x * x * x + Point.a * x + Point.b),
+                       int((Point.p + 1) // 4), Point.p)
+            P[1] = (Point.p - beta) if ((beta + sign) & 1) else beta
         return Point(P[0], P[1])
 
     def _copy(self):
