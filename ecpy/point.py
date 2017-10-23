@@ -142,6 +142,11 @@ class Point (PointBase):
             n - order of G, also size of the subgroup
             a, b - curve equation coefficients
             bits - bitsize of prime field, i.e. log2(p)
+            ------------------------------------------------------------
+            The implementation presumes a Short Weierstrass format curves
+            y^2 = x^3 + ax + b. The internal calculations are performed
+            in Jacobian (X = x/z^2, Y=y/z^3). no restriction is placed
+            on the values of a, b
         """
         cls.p = c['p']
         cls.n = c['n']
@@ -193,10 +198,25 @@ class Point (PointBase):
             P[1] = (Point.p - beta) if ((beta + sign) & 1) else beta
         return Point(P[0], P[1])
 
+    def is_valid(self):
+        """Validate the the Point is on the curve"""
+        if self.is_infinite:
+            return True
+        self._from_jacobian()
+        ysq = (self.y * self.y) % Point.p
+        xcu = (self.x * self.x * self.x) % Point.p
+        ax = (Point.a * self.x) % Point.p
+        right = (xcu + ax + self.b) % Point.p
+        if ysq == right:
+            return True
+        return False
+
     def _copy(self):
         return Point(self.x, self.y, self.z, self.is_infinite)
 
     def _double(self):
+        # double uses Bernstein-Lange 2007 formula
+        # https://hyperelliptic.org/EFD/g1p/data/shortw/jacobian/doubling/dbl-2007-bl
         if self.is_infinite or self.y == 0:
             return Point(infinity=True)
         ysq = (self.y * self.y) % Point.p
@@ -229,6 +249,8 @@ class Point (PointBase):
     def __add__(self, q):
         """Operator for adding one point to another or itself (doubling).
         Points must be from the same curve"""
+        # add uses Cohen, Miyaji, Ono formula
+        # https://hyperelliptic.org/EFD/g1p/data/shortw/jacobian/addition/add-1998-cmo-2
         assert isinstance(q, Point)
         if self.is_infinite:
             return q._copy()

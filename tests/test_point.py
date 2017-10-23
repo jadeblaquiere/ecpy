@@ -32,9 +32,9 @@ import time
 from Crypto.Random import random
 
 #_curve = curves.curve_secp112r1
-#_curve = curves.curve_secp256k1
+_curve = curves.curve_secp256k1
 #_curve = curves.curve_secp384r1
-_curve = curves.curve_bauer9
+#_curve = curves.curve_bauer9
 P = _curve['p']
 N = _curve['n']
 A = _curve['a']
@@ -158,6 +158,8 @@ if __name__ == '__main__':
     GenG2 = Generator.init(G[0],G[1])
     print('Generator Gen ' + str(GenG2))
     assert GenG2 is GenG
+    assert Gpt.is_valid()
+    assert GenG.is_valid()
     print('Generator uncompressed ' + str(GenG.uncompressed_format()))
     InfP = Point()
     ex = InfP.compress()
@@ -180,10 +182,18 @@ if __name__ == '__main__':
                 y = ay % _curve['n']
                 X = fast_multiply(G, x)
                 Xpt = Point(X[0], X[1]) if x != 0 else Point(infinity=True)
+                assert Xpt.is_valid()
                 Xa = Xpt.affine()
+                if x != 0:
+                    Xinv = Point(Xa[0],(Xa[1] + 1) % Point.p)
+                    assert Xinv.is_valid() != True
                 Y = fast_multiply(G, y)
                 Ypt = Point(Y[0], Y[1]) if y != 0 else Point(infinity=True)
+                assert Ypt.is_valid()
                 Ya = Ypt.affine()
+                if y != 0:
+                    Yinv = Point(Ya[0],(Ya[1] + 1) % Point.p)
+                    assert Yinv.is_valid() != True
                  #print 'fd'
                 XX = fast_add(X, X)
                 XXpt = Xpt._double()
