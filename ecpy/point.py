@@ -128,11 +128,6 @@ class Point (PointBase):
     bits = _curve['bits']
 
     def __init__(self, x=None, y=None, z=None, infinity=False, curve=None):
-        self.x = x
-        self.y = y
-        self.z = z if z is not None else 1
-        self.is_infinite = True if x is None else infinity
-        self.dcache = None
         if curve is None:
             self.p = Point.p
             self.n = Point.n
@@ -145,6 +140,11 @@ class Point (PointBase):
             self.a = curve['a']
             self.b = curve['b']
             self.bits = curve['bits']
+        self.x = x % self.p if x is not None else None
+        self.y = y % self.p if y is not None else None
+        self.z = z % self.p if z is not None else 1
+        self.is_infinite = True if x is None else infinity
+        self.dcache = None
 
     @classmethod
     def set_curve(cls, c):
