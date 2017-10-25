@@ -239,9 +239,39 @@ if __name__ == '__main__':
                     Pecxy = Xpt * y
                     Pecyx = Ypt * x
                     assert Pecxy == Pecyx
-                
     
-    
+    print('validating curve parameter is observed')
+    G256 = Generator.init(curves.curve_secp256k1['G'][0], curves.curve_secp256k1['G'][1], curve=curves.curve_secp256k1)
+    G384 = Generator.init(curves.curve_secp384r1['G'][0], curves.curve_secp384r1['G'][1], curve=curves.curve_secp384r1)
+    A256 = 3 * G256
+    B256 = 5 * G256
+    C256 = 8 * G256
+    D256 = 2 * B256
+    C256a = C256.affine()
+    E256 = Point(C256a[0], C256a[1], curve=curves.curve_secp256k1)
+    assert A256 + B256 == C256
+    assert A256 + D256 == B256 + E256
+    A384 = 3 * G384
+    B384 = 5 * G384
+    C384 = 8 * G384
+    D384 = 2 * B384
+    C384a = C384.affine()
+    E384 = Point(C384a[0], C384a[1], curve=curves.curve_secp384r1)
+    assert A384 + B384 == C384
+    assert A384 + D384 == B384 + E384
+    fail = False
+    try:
+        F = A256 + A384
+    except AssertionError:
+        fail = True
+    assert fail == True
+    fail = False
+    try:
+        F = A256 == A384
+    except AssertionError:
+        fail = True
+    assert fail == True
+
     testset = []
     mpztestset = []
     for x in range(250):
@@ -380,4 +410,3 @@ if __name__ == '__main__':
     print('ref =', ref_time)
     print('ecp =', orig_time)
     print('gen =', gnew_time)
-    

@@ -127,12 +127,24 @@ class Point (PointBase):
     b = _curve['b']
     bits = _curve['bits']
 
-    def __init__(self, x=None, y=None, z=None, infinity=False):
+    def __init__(self, x=None, y=None, z=None, infinity=False, curve=None):
         self.x = x
         self.y = y
         self.z = z if z is not None else 1
         self.is_infinite = True if x is None else infinity
         self.dcache = None
+        if curve is None:
+            self.p = Point.p
+            self.n = Point.n
+            self.a = Point.a
+            self.b = Point.b
+            self.bits = Point.bits
+        else:
+            self.p = curve['p']
+            self.n = curve['n']
+            self.a = curve['a']
+            self.b = curve['b']
+            self.bits = curve['bits']
 
     @classmethod
     def set_curve(cls, c):
@@ -154,12 +166,20 @@ class Point (PointBase):
         cls.b = c['b']
         cls.bits = c['bits']
 
+    def curve(self):
+        """Returns curve parameters as a dictionary"""
+        return { 'p' : self.p,
+                 'n' : self.n,
+                 'a' : self.a,
+                 'b' : self.b,
+                 'bits' : self.bits}
+
     def _from_jacobian(self):
         if not self.is_infinite:
             if self.z != 1:
-                zinv = _modinv(self.z, Point.p)
-                self.x = (self.x * zinv ** 2) % Point.p
-                self.y = (self.y * zinv ** 3) % Point.p
+                zinv = _modinv(self.z, self.p)
+                self.x = (self.x * zinv ** 2) % self.p
+                self.y = (self.y * zinv ** 3) % self.p
                 self.z = 1
 
     def uncompressed_format(self):
@@ -167,7 +187,7 @@ class Point (PointBase):
         if self.is_infinite:
             return b'infinity'
         P = self.affine()
-        pfmt = '%%0%dx' % (int((Point.bits + 7) / 8) * 2)
+        pfmt = '%%0%dx' % (int((self.bits + 7) / 8) * 2)
         return (b'04') + (pfmt % P[0]).encode() + (pfmt % P[1]).encode()
 
     def compress(self):
@@ -175,16 +195,22 @@ class Point (PointBase):
         if self.is_infinite:
             return b'infinity'
         P = self.affine()
-        pfmt = '%%0%dx' % (int((Point.bits + 7) / 8) * 2)
+        pfmt = '%%0%dx' % (int((self.bits + 7) / 8) * 2)
         return (b'03' if (P[1] % 2) else b'02') + (pfmt % P[0]).encode()
 
     @staticmethod
-    def decompress(textrep):
+    def decompress(textrep, curve=None):
         """Construct a point from a string representing the compressed form"""
         if isinstance(textrep, str):
             textrep = textrep.encode()
+        if curve == None:
+            curve = { 'p' : Point.p,
+                      'n' : Point.n,
+                      'a' : Point.a,
+                      'b' : Point.b,
+                      'bits' : Point.bits}
         if textrep == b'infinity':
-            return Point(infinity=True)
+            return Point(infinity=True, curve=curve)
         P = [0, 0]
         sign = int(textrep[:2], 16) & 1
         if int(textrep[:2], 16) & 4 != 0:
@@ -193,51 +219,66 @@ class Point (PointBase):
             P[1] = y = int(textrep[2+bytelen:], 16)
         else:
             P[0] = x = int(textrep[2:], 16)
-            beta = pow(int(x * x * x + Point.a * x + Point.b),
-                       int((Point.p + 1) // 4), Point.p)
-            P[1] = (Point.p - beta) if ((beta + sign) & 1) else beta
-        return Point(P[0], P[1])
+            beta = pow(int(x * x * x + curve['a'] * x + curve['b']),
+                       int((curve['p'] + 1) // 4), curve['p'])
+            P[1] = (curve['p'] - beta) if ((beta + sign) & 1) else beta
+        return Point(P[0], P[1], curve=curve)
 
     def is_valid(self):
         """Validate the the Point is on the curve"""
         if self.is_infinite:
             return True
         self._from_jacobian()
-        ysq = (self.y * self.y) % Point.p
-        xcu = (self.x * self.x * self.x) % Point.p
-        ax = (Point.a * self.x) % Point.p
-        right = (xcu + ax + self.b) % Point.p
+        ysq = (self.y * self.y) % self.p
+        xcu = (self.x * self.x * self.x) % self.p
+        ax = (self.a * self.x) % self.p
+        right = (xcu + ax + self.b) % self.p
         if ysq == right:
             return True
         return False
 
     def _copy(self):
-        return Point(self.x, self.y, self.z, self.is_infinite)
+        return Point(self.x, self.y, self.z, self.is_infinite, curve=self.curve())
 
     def _double(self):
         # double uses Bernstein-Lange 2007 formula
         # https://hyperelliptic.org/EFD/g1p/data/shortw/jacobian/doubling/dbl-2007-bl
         if self.is_infinite or self.y == 0:
-            return Point(infinity=True)
-        ysq = (self.y * self.y) % Point.p
-        S = (4 * self.x * ysq) % Point.p
-        M = (3 * self.x * self.x + Point.a * self.z ** 4) % Point.p
+            return Point(infinity=True, curve=self.curve())
+        ysq = (self.y * self.y) % self.p
+        S = (4 * self.x * ysq) % self.p
+        M = (3 * self.x * self.x + self.a * self.z ** 4) % self.p
         nx = (M * M - 2 * S) % self.p
-        ny = (M * (S - nx) - 8 * ysq * ysq) % Point.p
-        nz = (2 * self.y * self.z) % Point.p
-        return Point(nx, ny, nz)
+        ny = (M * (S - nx) - 8 * ysq * ysq) % self.p
+        nz = (2 * self.y * self.z) % self.p
+        return Point(nx, ny, nz, curve=self.curve())
+
+    def _same_curve(self, q):
+        assert isinstance(q, Point)
+        if self.p != q.p:
+            return False
+        if self.n != q.n:
+            return False
+        if self.a != q.a:
+            return False
+        if self.b != q.b:
+            return False
+        if self.bits != q.bits:
+            return False
+        return True
 
     def __eq__(self, q):
         assert isinstance(q, Point)
+        assert self._same_curve(q) == True
         if self.is_infinite:
             if q.is_infinite:
                 return True
             else:
                 return False
-        U1 = (self.x * q.z * q.z) % Point.p
-        U2 = (q.x * self.z * self.z) % Point.p
-        S1 = (self.y * q.z ** 3) % Point.p
-        S2 = (q.y * self.z ** 3) % Point.p
+        U1 = (self.x * q.z * q.z) % self.p
+        U2 = (q.x * self.z * self.z) % self.p
+        S1 = (self.y * q.z ** 3) % self.p
+        S2 = (q.y * self.z ** 3) % self.p
         if U1 == U2:
             if S1 == S2:
                 return True
@@ -252,38 +293,39 @@ class Point (PointBase):
         # add uses Cohen, Miyaji, Ono formula
         # https://hyperelliptic.org/EFD/g1p/data/shortw/jacobian/addition/add-1998-cmo-2
         assert isinstance(q, Point)
+        assert self._same_curve(q) == True
         if self.is_infinite:
             return q._copy()
         if q.is_infinite:
             return self._copy()
-        U1 = (self.x * q.z * q.z) % Point.p
-        U2 = (q.x * self.z * self.z) % Point.p
-        S1 = (self.y * q.z ** 3) % Point.p
-        S2 = (q.y * self.z ** 3) % Point.p
+        U1 = (self.x * q.z * q.z) % self.p
+        U2 = (q.x * self.z * self.z) % self.p
+        S1 = (self.y * q.z ** 3) % self.p
+        S2 = (q.y * self.z ** 3) % self.p
         if U1 == U2:
             if S1 != S2:
-                return Point(infinity=True)
+                return Point(infinity=True, curve=self.curve())
             return self._double()
         H = U2 - U1
         R = S2 - S1
-        H2 = (H * H) % Point.p
-        H3 = (H * H2) % Point.p
-        U1H2 = (U1 * H2) % Point.p
-        nx = (R * R - H3 - 2 * U1H2) % Point.p
-        ny = (R * (U1H2 - nx) - S1 * H3) % Point.p
-        nz = (H * self.z * q.z) % Point.p
-        return Point(nx, ny, nz)
+        H2 = (H * H) % self.p
+        H3 = (H * H2) % self.p
+        U1H2 = (U1 * H2) % self.p
+        nx = (R * R - H3 - 2 * U1H2) % self.p
+        ny = (R * (U1H2 - nx) - S1 * H3) % self.p
+        nz = (H * self.z * q.z) % self.p
+        return Point(nx, ny, nz, curve=self.curve())
 
     def __mul__(self, n):
         """Operator for multiplication of Point by scalar value n"""
         assert isinstance(n, integer_types)
         if self.is_infinite or n == 0:
-            return Point(infinity=True)
-        nmod = n % Point.n
+            return Point(infinity=True, curve=self.curve())
+        nmod = n % self.n
         if self.dcache is None:
             d = self._copy()
             self.dcache = []
-            accum = Point(infinity=True)
+            accum = Point(infinity=True, curve=self.curve())
             cn = self.bits
             while cn > 0:
                 dval = (d.x, d.y, d.z, d.is_infinite)
@@ -296,7 +338,7 @@ class Point (PointBase):
                 nmod = nmod // 2
                 cn -= 1
         else:
-            accum = Point(infinity=True)
+            accum = Point(infinity=True, curve=self.curve())
             idx = 0
             while nmod > 0:
                 if (nmod % 2) == 1:
@@ -322,7 +364,7 @@ class Point (PointBase):
 
     def __repr__(self):
         self._from_jacobian()
-        return "Point.decompress(" + str(self.x) + ", " + str(self.y) + ")"
+        return "self.decompress(" + str(self.x) + ", " + str(self.y) + ")"
 
 
 class Generator (Point):
@@ -330,8 +372,8 @@ class Generator (Point):
     are generated in constructor which accererate scalar multiplication.
     """
 
-    def __init__(self, x, y, z=None):
-        super(self.__class__, self).__init__(x, y, z)
+    def __init__(self, x, y, z=None, curve=None):
+        super(self.__class__, self).__init__(x, y, z, curve=curve)
         self._recalculate_tables()
 
     @classmethod
@@ -339,15 +381,17 @@ class Generator (Point):
         Point.set_curve(c)
 
     @staticmethod
-    def init(x, y, z=None):
+    def init(x, y, z=None, curve=None):
         """Will find a matching generator or construct one if required.
         Creating generators is computationally expensive so this method is
         preferred to calling normal constructor."""
-        P = Point(x, y, z)
+        P = Point(x, y, z, curve)
         for gen in _generator_list:
-            if P == gen:
-                return gen
-        gen = Generator(x, y, z)
+            if P._same_curve(gen):
+                if P == gen:
+                    return gen
+        gen = Generator(x, y, z, curve)
+        assert gen.is_valid()
         _generator_list.append(gen)
         return gen
 
@@ -361,13 +405,13 @@ class Generator (Point):
         while bitbase < Generator.bits:
             nlut = []
             for i in range(self.tablesize):
-                accum = Point(infinity=True)
+                accum = Point(infinity=True, curve=self.curve())
                 for j in range(_generator_LUT_bits):
                     if bitbase+j < Generator.bits:
                         if (i & (0x01 << j)) != 0:
                             dval = self.dcache[bitbase + j]
-                            accum = accum + Point(
-                                dval[0], dval[1], dval[2], dval[3])
+                            accum = accum + Point(dval[0], dval[1],
+                                    dval[2], dval[3], self.curve())
                 nlut.append(accum)
             accum._from_jacobian()
             self.lut.append(nlut)
@@ -376,7 +420,7 @@ class Generator (Point):
     def __mul__(self, n):
         nshift = n % Generator.n
         iidx = 0
-        accum = Point(infinity=True)
+        accum = Point(infinity=True, curve=self.curve())
         while nshift != 0:
             idx = nshift & self.maskbits
             accum = accum + self.lut[iidx][idx]
