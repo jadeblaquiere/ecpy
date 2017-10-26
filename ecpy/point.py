@@ -168,11 +168,11 @@ class Point (PointBase):
 
     def curve(self):
         """Returns curve parameters as a dictionary"""
-        return { 'p' : self.p,
-                 'n' : self.n,
-                 'a' : self.a,
-                 'b' : self.b,
-                 'bits' : self.bits}
+        return {'p': self.p,
+                'n': self.n,
+                'a': self.a,
+                'b': self.b,
+                'bits': self.bits}
 
     def _from_jacobian(self):
         if not self.is_infinite:
@@ -183,7 +183,7 @@ class Point (PointBase):
                 self.z = 1
 
     def uncompressed_format(self):
-        """Return a string representing the uncompressed form (x and y) of the point"""
+        """Return a string of the uncompressed form (x and y) of the point"""
         if self.is_infinite:
             return b'infinity'
         P = self.affine()
@@ -191,7 +191,7 @@ class Point (PointBase):
         return (b'04') + (pfmt % P[0]).encode() + (pfmt % P[1]).encode()
 
     def compress(self):
-        """Return a string representing the compressed form of the point"""
+        """Return a string of the compressed form of the point"""
         if self.is_infinite:
             return b'infinity'
         P = self.affine()
@@ -203,12 +203,12 @@ class Point (PointBase):
         """Construct a point from a string representing the compressed form"""
         if isinstance(textrep, str):
             textrep = textrep.encode()
-        if curve == None:
-            curve = { 'p' : Point.p,
-                      'n' : Point.n,
-                      'a' : Point.a,
-                      'b' : Point.b,
-                      'bits' : Point.bits}
+        if curve is None:
+            curve = {'p': Point.p,
+                     'n': Point.n,
+                     'a': Point.a,
+                     'b': Point.b,
+                     'bits': Point.bits}
         if textrep == b'infinity':
             return Point(infinity=True, curve=curve)
         P = [0, 0]
@@ -238,7 +238,8 @@ class Point (PointBase):
         return False
 
     def _copy(self):
-        return Point(self.x, self.y, self.z, self.is_infinite, curve=self.curve())
+        return Point(self.x, self.y, self.z, self.is_infinite,
+                     curve=self.curve())
 
     def _double(self):
         # double uses Bernstein-Lange 2007 formula
@@ -269,7 +270,7 @@ class Point (PointBase):
 
     def __eq__(self, q):
         assert isinstance(q, Point)
-        assert self._same_curve(q) == True
+        assert self._same_curve(q) is True
         if self.is_infinite:
             if q.is_infinite:
                 return True
@@ -293,7 +294,7 @@ class Point (PointBase):
         # add uses Cohen, Miyaji, Ono formula
         # https://hyperelliptic.org/EFD/g1p/data/shortw/jacobian/addition/add-1998-cmo-2
         assert isinstance(q, Point)
-        assert self._same_curve(q) == True
+        assert self._same_curve(q) is True
         if self.is_infinite:
             return q._copy()
         if q.is_infinite:
@@ -410,8 +411,8 @@ class Generator (Point):
                     if bitbase+j < Generator.bits:
                         if (i & (0x01 << j)) != 0:
                             dval = self.dcache[bitbase + j]
-                            accum = accum + Point(dval[0], dval[1],
-                                    dval[2], dval[3], self.curve())
+                            accum = accum + Point(dval[0], dval[1], dval[2],
+                                                  dval[3], self.curve())
                 nlut.append(accum)
             accum._from_jacobian()
             self.lut.append(nlut)
