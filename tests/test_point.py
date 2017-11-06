@@ -272,6 +272,11 @@ if __name__ == '__main__':
         fail = True
     assert fail == True
 
+    # generate small curve - not byte aligned, bits != 0 (mod 8)
+    curve = {'b': 0, 'bits': 11, 'G': (1364, 917), 'a': 1, 'n': 31, 'p': 1487}
+    Gsmall = Generator.init(curve['G'][0], curve['G'][1], curve=curve)
+
+    print("benchmarking :")
     testset = []
     mpztestset = []
     for x in range(250):

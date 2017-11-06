@@ -397,18 +397,18 @@ class Generator (Point):
         return gen
 
     def _recalculate_tables(self):
-        self.ntables = ((Generator.bits - 1) // _generator_LUT_bits) + 1
+        self.ntables = ((self.bits - 1) // _generator_LUT_bits) + 1
         self.tablesize = 2 ** _generator_LUT_bits
         self.maskbits = self.tablesize - 1
         super(self.__class__, self).__mul__(1)
         bitbase = 0
         self.lut = []
-        while bitbase < Generator.bits:
+        while bitbase < self.bits:
             nlut = []
             for i in range(self.tablesize):
                 accum = Point(infinity=True, curve=self.curve())
                 for j in range(_generator_LUT_bits):
-                    if bitbase+j < Generator.bits:
+                    if bitbase+j < self.bits:
                         if (i & (0x01 << j)) != 0:
                             dval = self.dcache[bitbase + j]
                             accum = accum + Point(dval[0], dval[1], dval[2],
@@ -419,7 +419,7 @@ class Generator (Point):
             bitbase += _generator_LUT_bits
 
     def __mul__(self, n):
-        nshift = n % Generator.n
+        nshift = n % self.n
         iidx = 0
         accum = Point(infinity=True, curve=self.curve())
         while nshift != 0:
